@@ -143,7 +143,7 @@ void			RobotPlayer::doUpdate(float dt)
   bool	shoot   = false;
   const float azimuth = getAngle();
   // Allow shooting only if angle is near and timer has elapsed
-  //((!path.empty()) && timerForShot <= 0.0f)
+
   /*
   if ((!path.empty()) && timerForShot <= 0.0f) {
     float p1[3];
@@ -222,31 +222,44 @@ void			RobotPlayer::doUpdateMotion(float dt)
     float tankAngVel = BZDB.eval(StateDatabase::BZDB_TANKANGVEL);
     float tankSpeed = BZDBCache::tankSpeed;
 
-    //start of Kalen modifications
-
-    /*
+    //start of Kalen modifications 1
+    /* So what we are trying to do is first check if we are playin capture the flag, and then we create a float array to hold the position of the flag the robot is going to pursue.
+    *  If we are in capture the flag game, the rest of the code runs. First we get the total flags in the game, and for each of them we check if it's a different TeamColor than our
+    *  robot. If it is, then we get its position.
+    *
+    */
     bool teamGame = World::getWorld()->allowTeamFlags();
+    float flagPos[3];
 
     if (teamGame) {
-        int numFlags = World::getWorld()->getMaxFlags();
-	for (int f = 0; f < numFlags; f++) {
+        int numberFlags = World::getWorld()->getMaxFlags();
+	for (int f = 0; f < numberFlags; f++) {
 	    Flag& flag = World::getWorld()->getFlag(f);
-	    if ((*(flag.type)).flagTeam == getTeam()) {
-
+	    if ((*(flag.type)).flagTeam != getTeam()) {
+		flagPos[0] = flag.position[0];
+		flagPos[1] = flag.position[1];
+		flagPos[2] = flag.position[2];
+		//char buffer[128];
+		//sprintf (buffer, "Color of flag being pursued is is  %d",
+		    //(*(flag.type)).flagTeam);
+		//controlPanel->addMessage(buffer, 0);
 	    }
+
 	}
-	char buffer[128];
-	sprintf (buffer, "getCurMaxPlayers() is  %d",
-	  World::getWorld()->getCurMaxPlayers());
-	controlPanel->addMessage(buffer);
+	setFlagTarget(flagPos);
     }
-    */
+    
 
 
+    /*  This is the code example for printing to the console inside of the game.
+    
     char buffer[128];
     sprintf (buffer, "getCurMaxPlayers() is  %d",
 	World::getWorld()->getCurMaxPlayers());
     controlPanel->addMessage(buffer, 0);
+  
+    */
+
     //End of Kalen modifications
 
 
@@ -305,7 +318,7 @@ void			RobotPlayer::doUpdateMotion(float dt)
 
     // when we are not evading, follow the path
 
-    
+    /*
     if (!evading && dt > 0.0 && pathIndex < (int)path.size()) {
       float distance;
       float v[2];
@@ -354,9 +367,168 @@ void			RobotPlayer::doUpdateMotion(float dt)
 	}
       }
     }
-  }
+    */
+
+
+    /* Beginning Kalen modifications 2.
+    *  So this is a copy of the above code. We are going to try and modify it to set its target to where the flag is.
+    *
+    */    
+
+
+    //(!evading && dt > 0.0 && pathIndex < (int)path.size())
+    if (!evading && dt > 0.0) {      
+      float distance;
+      float v[2];
+      //const float* endPoint = path[pathIndex].get(); ----removed from original code
+      // find how long it will take to get to next path segment
+      //v[0] = endPoint[0] - position[0];
+      //v[1] = endPoint[1] - position[1];
+      v[0] = flagPos[0] - position[0];
+      v[1] = flagPos[1] - position[1];
+      distance = hypotf(v[0], v[1]);
+      float tankRadius = BZDBCache::tankRadius;
+      // smooth path a little by turning early at corners, might get us stuck, though
+      if (distance <= 2.5f * tankRadius)
+	  pathIndex++;
+
+	  float segmentAzimuth = atan2f(v[1], v[0]);
+	  float azimuthDiff = segmentAzimuth - azimuth;
+
+
+	  if (azimuthDiff > M_PI) azimuthDiff -= (float)(2.0 * M_PI);
+	  else if (azimuthDiff < -M_PI) azimuthDiff += (float)(2.0 * M_PI);
+	  if (fabs(azimuthDiff) > 0.01f) {
+	  // drive backward when target is behind, try to stick to last direction
+	  if (drivingForward)
+	    drivingForward = fabs(azimuthDiff) < M_PI/2*0.9 ? true : false;
+	  else
+	    drivingForward = fabs(azimuthDiff) < M_PI/2*0.3 ? true : false;
+	  setDesiredSpeed(drivingForward ? 1.0f : -1.0f);
+	  // set desired turn speed
+	  if (azimuthDiff >= dt * tankAngVel) 
+	  {
+	    setDesiredAngVel(1.0f);
+	  } 
+	  else if (azimuthDiff <= -dt * tankAngVel) 
+	  {
+	    setDesiredAngVel(-1.0f);
+	  } 
+	  else 
+	  {
+	    setDesiredAngVel(azimuthDiff / dt / tankAngVel);
+	  }
+      }
+      else {
+	  drivingForward = true;
+	  // tank doesn't turn while moving forward
+	  setDesiredAngVel(0.0f);
+	  // find how long it will take to get to next path segment
+	  if (distance <= dt * tankSpeed) 
+	  {
+	    pathIndex++;
+	    // set desired speed
+	    setDesiredSpeed(distance / dt / tankSpeed);
+	  } 
+	  else
+	  {
+	    setDesiredSpeed(1.0f);
+	  }
+	}
+      }
+
+    }
   LocalPlayer::doUpdateMotion(dt);
 }
+
+
+
+
+void			RobotPlayer::setFlagTarget(const float* _target)
+{
+  static int mailbox = 0;
+  
+  path.clear();
+  //target = _target;
+  //if (!target) return;
+
+  // work backwards (from target to me)
+  //float proj[3];
+  //getProjectedPosition(target, proj);
+  const float *p1 = _target;
+  const float* p2 = getPosition();
+  float q1[2], q2[2];
+  BzfRegion* headRegion = findRegion(p1, q1);
+  BzfRegion* tailRegion = findRegion(p2, q2);
+  if (!headRegion || !tailRegion) {
+    // if can't reach target then forget it
+    return;
+  }
+
+  mailbox++;
+  headRegion->setPathStuff(0.0f, NULL, q1, mailbox);
+  RegionPriorityQueue queue;
+  queue.insert(headRegion, 0.0f);
+  BzfRegion* next;
+  while (!queue.isEmpty() && (next = queue.remove()) != tailRegion)
+    findPath(queue, next, tailRegion, q2, mailbox);
+
+  // get list of points to go through to reach the target
+  next = tailRegion;
+  do {
+    p1 = next->getA();
+    path.push_back(p1);
+    next = next->getTarget();
+  } while (next && next != headRegion);
+  if (next || tailRegion == headRegion)
+    path.push_back(q1);
+  else
+    path.clear();
+  pathIndex = 0;
+  
+}
+
+
+
+void RobotPlayer::getProjectedFlagPosition(const float *targ, float *projpos) const
+{
+  double myx = getPosition()[0];
+  double myy = getPosition()[1];
+  double hisx = targ[0];
+  double hisy = targ[1];
+  double deltax = hisx - myx;
+  double deltay = hisy - myy;
+  double distance = hypotf(deltax,deltay) - BZDB.eval(StateDatabase::BZDB_MUZZLEFRONT) - BZDBCache::tankRadius;
+  if (distance <= 0) distance = 0;
+  double shotspeed = BZDB.eval(StateDatabase::BZDB_SHOTSPEED)*
+    (getFlag() == Flags::Laser ? BZDB.eval(StateDatabase::BZDB_LASERADVEL) :
+     getFlag() == Flags::RapidFire ? BZDB.eval(StateDatabase::BZDB_RFIREADVEL) :
+     getFlag() == Flags::MachineGun ? BZDB.eval(StateDatabase::BZDB_MGUNADVEL) : 1) +
+      hypotf(getVelocity()[0], getVelocity()[1]);
+
+  double errdistance = 1.0;
+  float tx, ty, tz;
+  for (int tries=0 ; errdistance > 0.05 && tries < 4 ; tries++)
+  {
+    float t = (float)distance / (float)shotspeed;
+    //Need to fix this, just leaving here as I'm not sure whether I will outright delete this function or update so that it works.
+    //projectPosition(targ, t + 0.05f, tx, ty, tz); // add 50ms for lag
+    double distance2 = hypotf(tx - myx, ty - myy);
+    errdistance = fabs(distance2-distance) / (distance + ZERO_TOLERANCE);
+    distance = distance2;
+  }
+  projpos[0] = tx; projpos[1] = ty; projpos[2] = tz;
+
+
+  // projected pos in building -> use current pos
+  if (World::getWorld()->inBuilding(projpos, 0.0f, BZDBCache::tankHeight)) {
+    projpos[0] = targ[0];
+    projpos[1] = targ[1];
+    projpos[2] = targ[2];
+  }  
+}
+
+
 
 void			RobotPlayer::explodeTank()
 {
@@ -414,6 +586,12 @@ const Player*		RobotPlayer::getTarget() const
 {
   return target;
 }
+
+
+/*So the issue we're having is we have no idea where this fucking robot's actions are initialzed...
+*---it looks like the constructor initializes the RobotPlayer class using this setTarget() function
+*
+*/
 
 void			RobotPlayer::setTarget(const Player* _target)
 {
