@@ -235,13 +235,13 @@ void			RobotPlayer::doUpdateMotion(float dt)
         int numberFlags = World::getWorld()->getMaxFlags();
 	for (int f = 0; f < numberFlags; f++) {
 	    Flag& flag = World::getWorld()->getFlag(f);
-	    if ((*(flag.type)).flagTeam != getTeam()) {
+	    if ((*(flag.type)).flagTeam != getTeam() && (*(flag.type)).flagTeam != NoTeam) {
 		flagPos[0] = flag.position[0];
 		flagPos[1] = flag.position[1];
 		flagPos[2] = flag.position[2];
 		//char buffer[128];
-		//sprintf (buffer, "Color of flag being pursued is is  %d",
-		    //(*(flag.type)).flagTeam);
+		//sprintf (buffer, "Color of flag being pursued is is  %s",
+		    //Team::getName((*(flag.type)).flagTeam));
 		//controlPanel->addMessage(buffer, 0);
 	    }
 
