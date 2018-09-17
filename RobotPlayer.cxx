@@ -240,6 +240,11 @@ void			RobotPlayer::doUpdateMotion(float dt)
     {
 	(*server).sendDropFlag(getId(), getPosition());
     }
+    //Get robot tank to drop any white flags it accidentally picks up.
+    if (teamGame && getFlag() != Flags::Null && (*(getFlag())).flagTeam == NoTeam)
+    {
+	(*server).sendDropFlag(getId(), getPosition());
+    }
 
 
 
@@ -253,10 +258,6 @@ void			RobotPlayer::doUpdateMotion(float dt)
 		flagPos[0] = flag.position[0];
 		flagPos[1] = flag.position[1];
 		flagPos[2] = flag.position[2];
-		//char buffer[128];
-		//sprintf (buffer, "Flagtype pointer is  %s",
-		    //Flags::Null);
-		//controlPanel->addMessage(buffer, 0);
 	    }
 
 	}
@@ -266,8 +267,12 @@ void			RobotPlayer::doUpdateMotion(float dt)
     else if (teamGame && Player::getFlag() != Flags::Null)
     {
 	TeamColor selfTeam = getTeam();
-	const float* baseCoord = World::getWorld()->getBase(selfTeam);   //second parameter is for if the team has more than one base
+	const float* baseCoord = World::getWorld()->getBase(selfTeam);
 	setFlagTarget(baseCoord);  
+	char buffer[128];
+	sprintf (buffer, "first base coordinate is %f, the second is %f, and the third is %f.",
+	    baseCoord[0], baseCoord[1], baseCoord[2]);
+	controlPanel->addMessage(buffer, 0);
     }
 
     else
