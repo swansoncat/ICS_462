@@ -222,6 +222,10 @@ void			RobotPlayer::doUpdateMotion(float dt)
     float tankAngVel = BZDB.eval(StateDatabase::BZDB_TANKANGVEL);
     float tankSpeed = BZDBCache::tankSpeed;
 
+
+
+
+
     //start of Kalen modifications 1
     /* So what we are trying to do is first check if we are playin capture the flag, and then we create a float array to hold the position of the flag the robot is going to pursue.
     *  If we are in capture the flag game, the rest of the code runs. First we get the total flags in the game, and for each of them we check if it's a different TeamColor than our
@@ -230,6 +234,14 @@ void			RobotPlayer::doUpdateMotion(float dt)
     */
     bool teamGame = World::getWorld()->allowTeamFlags();
     float flagPos[3];
+
+    //Get robot tank to drop its own flag if it has it.
+    if (teamGame && getFlag() != Flags::Null && (*(getFlag())).flagTeam == getTeam())
+    {
+	(*server).sendDropFlag(getId(), getPosition());
+    }
+
+
 
     //if statement checks if we are playing capture the flag and if it is true that the tank is not holding a flag. This is to seek a flag if not carrying one.
     if (teamGame && getFlag() == Flags::Null) {
@@ -242,8 +254,8 @@ void			RobotPlayer::doUpdateMotion(float dt)
 		flagPos[1] = flag.position[1];
 		flagPos[2] = flag.position[2];
 		//char buffer[128];
-		//sprintf (buffer, "Color of flag being pursued is is  %s",
-		    //Team::getName((*(flag.type)).flagTeam));
+		//sprintf (buffer, "Flagtype pointer is  %s",
+		    //Flags::Null);
 		//controlPanel->addMessage(buffer, 0);
 	    }
 
@@ -251,7 +263,7 @@ void			RobotPlayer::doUpdateMotion(float dt)
 	setFlagTarget(flagPos);
     }
     //else if statement checks if we are playing capture the flag and if is is true that the tank is holding a flag that belongs to an enemy team. This is to bring is back to its own base to score.
-    else if (teamGame && getFlag() != Flags::Null)
+    else if (teamGame && Player::getFlag() != Flags::Null)
     {
 	TeamColor selfTeam = getTeam();
 	const float* baseCoord = World::getWorld()->getBase(selfTeam);   //second parameter is for if the team has more than one base
@@ -275,6 +287,11 @@ void			RobotPlayer::doUpdateMotion(float dt)
     */
 
     //End of Kalen modifications
+
+
+
+
+
 
 
     // basically a clone of Roger's evasive code
@@ -384,6 +401,11 @@ void			RobotPlayer::doUpdateMotion(float dt)
     */
 
 
+
+
+
+
+
     /* Beginning Kalen modifications 2.
     *  So this is a copy of the above code. We are going to try and modify it to set its target to where the flag is.
     *
@@ -452,6 +474,11 @@ void			RobotPlayer::doUpdateMotion(float dt)
       }
 
     }
+
+
+
+
+
   LocalPlayer::doUpdateMotion(dt);
 }
 
