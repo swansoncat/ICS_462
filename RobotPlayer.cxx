@@ -231,10 +231,12 @@ void			RobotPlayer::doUpdateMotion(float dt)
     bool teamGame = World::getWorld()->allowTeamFlags();
     float flagPos[3];
 
-    if (teamGame) {
+    //if statement checks if we are playing capture the flag and if it is true that the tank is not holding a flag. This is to seek a flag if not carrying one.
+    if (teamGame && getFlag() == Flags::Null) {
         int numberFlags = World::getWorld()->getMaxFlags();
 	for (int f = 0; f < numberFlags; f++) {
 	    Flag& flag = World::getWorld()->getFlag(f);
+	    //
 	    if ((*(flag.type)).flagTeam != getTeam() && (*(flag.type)).flagTeam != NoTeam) {
 		flagPos[0] = flag.position[0];
 		flagPos[1] = flag.position[1];
@@ -247,6 +249,18 @@ void			RobotPlayer::doUpdateMotion(float dt)
 
 	}
 	setFlagTarget(flagPos);
+    }
+    //else if statement checks if we are playing capture the flag and if is is true that the tank is holding a flag that belongs to an enemy team. This is to bring is back to its own base to score.
+    else if (teamGame && getFlag() != Flags::Null)
+    {
+	TeamColor selfTeam = getTeam();
+	const float* baseCoord = World::getWorld()->getBase(selfTeam);   //second parameter is for if the team has more than one base
+	setFlagTarget(baseCoord);  
+    }
+
+    else
+    {
+	//This does nothing yet.
     }
     
 
