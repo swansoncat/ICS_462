@@ -261,18 +261,28 @@ void			RobotPlayer::doUpdateMotion(float dt)
 	    }
 
 	}
+	//char buffer[128];
+	//sprintf (buffer, "first flag coordinate is %f, the second flag coordinate is %f, and the third flag coordinate is %f.",
+	    //flagPos[0], flagPos[1], flagPos[2]);
+	//controlPanel->addMessage(buffer, 0);
 	setFlagTarget(flagPos);
     }
     //else if statement checks if we are playing capture the flag and if is is true that the tank is holding a flag that belongs to an enemy team. This is to bring is back to its own base to score.
-    else if (teamGame && Player::getFlag() != Flags::Null)
+    else if (teamGame && getFlag() != Flags::Null)
     {
 	TeamColor selfTeam = getTeam();
-	const float* baseCoord = World::getWorld()->getBase(selfTeam);
+	const float* baseCoord = World::getWorld()->getBase(RedTeam,0);
+	flagPos[0] = baseCoord[0];
+	flagPos[1] = baseCoord[1];
+	flagPos[2] = baseCoord[2];	  
 	setFlagTarget(baseCoord);  
-	char buffer[128];
-	sprintf (buffer, "first base coordinate is %f, the second is %f, and the third is %f.",
-	    baseCoord[0], baseCoord[1], baseCoord[2]);
-	controlPanel->addMessage(buffer, 0);
+
+
+
+	//char buffer[128];
+	//sprintf (buffer, "first base coordinate is %f, the second is %f, and the third is %f. My team is %d",
+	    //baseCoord[0], baseCoord[1], baseCoord[2], selfTeam);
+	//controlPanel->addMessage(buffer, 0);
     }
 
     else
@@ -280,8 +290,6 @@ void			RobotPlayer::doUpdateMotion(float dt)
 	//This does nothing yet.
     }
     
-
-
     /*  This is the code example for printing to the console inside of the game.
     
     char buffer[128];
@@ -418,7 +426,7 @@ void			RobotPlayer::doUpdateMotion(float dt)
 
 
     //(!evading && dt > 0.0 && pathIndex < (int)path.size())
-    if (!evading && dt > 0.0) {      
+    if (!evading && dt > 0.0 && pathIndex < (int)path.size()) {      
       float distance;
       float v[2];
       //const float* endPoint = path[pathIndex].get(); ----removed from original code
