@@ -158,7 +158,6 @@ void			RobotPlayer::doUpdate(float dt)
     else
       if (azimuthDiff < -M_PI)
 	azimuthDiff += (float)(2.0 * M_PI);
-
     const float targetdistance = hypotf(p1[0] - p2[0], p1[1] - p2[1]) -
       BZDB.eval(StateDatabase::BZDB_MUZZLEFRONT) - tankRadius;
   */
@@ -270,8 +269,8 @@ void			RobotPlayer::doUpdateMotion(float dt)
     //else if statement checks if we are playing capture the flag and if is is true that the tank is holding a flag that belongs to an enemy team. This is to bring is back to its own base to score.
     else if (teamGame && getFlag() != Flags::Null)
     {
-	TeamColor selfTeam = getTeam();
-	const float* baseCoord = World::getWorld()->getBase(RedTeam,0);
+	//TeamColor selfTeam = getTeam();
+	const float* baseCoord = World::getWorld()->getBase(getTeam(),0);
 	flagPos[0] = baseCoord[0];
 	flagPos[1] = baseCoord[1];
 	flagPos[2] = baseCoord[2];	  
@@ -375,11 +374,8 @@ void			RobotPlayer::doUpdateMotion(float dt)
       // smooth path a little by turning early at corners, might get us stuck, though
       if (distance <= 2.5f * tankRadius)
 	pathIndex++;
-
       float segmentAzimuth = atan2f(v[1], v[0]);
       float azimuthDiff = segmentAzimuth - azimuth;
-
-
       if (azimuthDiff > M_PI) azimuthDiff -= (float)(2.0 * M_PI);
       else if (azimuthDiff < -M_PI) azimuthDiff += (float)(2.0 * M_PI);
       if (fabs(azimuthDiff) > 0.01f) {
