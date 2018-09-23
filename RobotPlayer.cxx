@@ -250,13 +250,20 @@ void			RobotPlayer::doUpdateMotion(float dt)
     //if statement checks if we are playing capture the flag and if it is true that the tank is not holding a flag. This is to seek a flag if not carrying one.
     if (teamGame && getFlag() == Flags::Null) {
         int numberFlags = World::getWorld()->getMaxFlags();
+	float flagDistance = 1000000; //arbitrarily large number.
 	for (int f = 0; f < numberFlags; f++) {
 	    Flag& flag = World::getWorld()->getFlag(f);
-	    //
-	    if ((*(flag.type)).flagTeam != getTeam() && (*(flag.type)).flagTeam != NoTeam) {
-		flagPos[0] = flag.position[0];
-		flagPos[1] = flag.position[1];
-		flagPos[2] = flag.position[2];
+	    //Checks whether or not flag is it's own team or a non-team flag.
+	    if ((*(flag.type)).flagTeam != getTeam() && (*(flag.type)).flagTeam != NoTeam) 
+	    {
+		//tries to find the lar
+		if (hypotf(flag.position[0], flag.position[1]) < flagDistance)
+		{
+		    flagDistance = hypotf(flag.position[0], flag.position[1]);
+		    flagPos[0] = flag.position[0];
+		    flagPos[1] = flag.position[1];
+		    flagPos[2] = flag.position[2];
+		}
 	    }
 
 	}
