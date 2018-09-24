@@ -250,7 +250,7 @@ void			RobotPlayer::doUpdateMotion(float dt)
 
 
     //if statement checks if we are playing capture the flag and if it is true that the tank is not holding a flag. This is to seek a flag if not carrying one.
-    if (teamGame && getFlag() == Flags::Null && !flocking) {
+    if (teamGame && getFlag() == Flags::Null && LocalPlayer::getMyTank()->getTeam() != getTeam() /* && !flocking */ ) {
         int numberFlags = World::getWorld()->getMaxFlags();
 	float flagDistance = 1000000; //arbitrarily large number.
 	for (int f = 0; f < numberFlags; f++) {
@@ -275,8 +275,9 @@ void			RobotPlayer::doUpdateMotion(float dt)
 	//controlPanel->addMessage(buffer, 0);
 	setFlagTarget(flagPos);
     }
-    //else if statement checks if we are playing capture the flag and if is is true that the tank is holding a flag that belongs to an enemy team. This is to bring is back to its own base to score.
-    else if (teamGame && getFlag() != Flags::Null && !flocking)
+    //else if statement checks if we are playing capture the flag and if is is true that the tank is holding a flag that belongs to an enemy team. This is to bring is 
+    //back to its own base to score.
+    else if (teamGame && getFlag() != Flags::Null && LocalPlayer::getMyTank()->getTeam() != getTeam() /* && !flocking */)
     {
 	//TeamColor selfTeam = getTeam();
 	const float* baseCoord = World::getWorld()->getBase(getTeam(),0);
@@ -286,21 +287,23 @@ void			RobotPlayer::doUpdateMotion(float dt)
 	setFlagTarget(baseCoord);  
     }
     //I think I'm going to use this section for the assignment 2 flocking behavior.
-    else
+    else if (teamGame && flocking && LocalPlayer::getMyTank()->getTeam() == getTeam())
     {
 	Player *p = 0;
 	flagPos[0] = position[0] + LocalPlayer::getMyTank()->getPosition()[0];
 	flagPos[1] = position[1] + LocalPlayer::getMyTank()->getPosition()[1];
 	flagPos[2] = position[2] + LocalPlayer::getMyTank()->getPosition()[2];
+	int numTeammates = 2;
 
 	for (int t=0; t <= World::getWorld()->getCurMaxPlayers(); t++) 
 	{
 	    p = World::getWorld()->getPlayer(t);
-	    if (p != NULL && p->getId() != getId())
+	    if (p != NULL && p->getId() != getId() && p->getTeam() == getTeam())
 	    {
 		flagPos[0] = flagPos[0] + p->getPosition()[0];
 		flagPos[1] = flagPos[1] + p->getPosition()[1];
 		flagPos[2] = flagPos[2] + p->getPosition()[2];
+		numTeammates++;
 	    }   
 	}
 	char buffer_0[256];
@@ -313,11 +316,15 @@ void			RobotPlayer::doUpdateMotion(float dt)
 	    getPosition()[0], getPosition()[1], getPosition()[2]);
 	controlPanel->addMessage(buffer_2, 0);
 
-	flagPos[0] = (flagPos[0] / World::getWorld()->getCurMaxPlayers()) - (2 * getRadius());
-	flagPos[1] = (flagPos[1] / World::getWorld()->getCurMaxPlayers()) - (2 * getRadius());
+	flagPos[0] = (flagPos[0] / numTeammates) - (2 * getRadius());
+	flagPos[1] = (flagPos[1] / numTeammates) - (2 * getRadius());
 	//The below shouldn't really matter at this point in time, as the tank can't really just pick and choose what height it wants to be, but putting it there for consistency.
 	flagPos[2] = (flagPos[2] / World::getWorld()->getCurMaxPlayers()) - (2 * getRadius()); 
 	setFlagTarget(flagPos);
+    }
+    else
+    {
+	///currently nothing here.
     }
     
     /*  This is the code example for printing to the console inside of the game.
