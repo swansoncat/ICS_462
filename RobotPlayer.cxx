@@ -289,7 +289,7 @@ void			RobotPlayer::doUpdateMotion(float dt)
     else
     {
 	Player *p = 0;
-	float *centerOfMass;
+	float centerOfMass[3];
 	centerOfMass[0] = position[0];
 	centerOfMass[1] = position[1];
 	centerOfMass[2] = position[2];
@@ -308,7 +308,7 @@ void			RobotPlayer::doUpdateMotion(float dt)
 	    }   
 	}
 	centerOfMass[0] = (centerOfMass[0] / playerCount) - (2 * getRadius());
-	centerOfMass[1] = centerOfMass[1] / playerCount - (2 * getRadius());
+	centerOfMass[1] = (centerOfMass[1] / playerCount) - (2 * getRadius());
 	centerOfMass[2] = centerOfMass[2] / playerCount;
 	setFlagTarget(centerOfMass);
     }
