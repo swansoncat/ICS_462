@@ -289,28 +289,35 @@ void			RobotPlayer::doUpdateMotion(float dt)
     else
     {
 	Player *p = 0;
-	float centerOfMass[3];
-	centerOfMass[0] = position[0];
-	centerOfMass[1] = position[1];
-	centerOfMass[2] = position[2];
-	int playerCount = 1;
+	flagPos[0] = position[0] + LocalPlayer::getMyTank()->getPosition()[0];
+	flagPos[1] = position[1] + LocalPlayer::getMyTank()->getPosition()[1];
+	flagPos[2] = position[2] + LocalPlayer::getMyTank()->getPosition()[2];
 
 	for (int t=0; t <= World::getWorld()->getCurMaxPlayers(); t++) 
 	{
 	    p = World::getWorld()->getPlayer(t);
-	    if (p != NULL)
+	    if (p != NULL && p->getId() != getId())
 	    {
-		const float *playerPos = (*p).getPosition();
-		centerOfMass[0] += playerPos[0];
-		centerOfMass[1] += playerPos[1];
-		centerOfMass[2] += playerPos[2];
-		playerCount++;
+		flagPos[0] = flagPos[0] + p->getPosition()[0];
+		flagPos[1] = flagPos[1] + p->getPosition()[1];
+		flagPos[2] = flagPos[2] + p->getPosition()[2];
 	    }   
 	}
-	centerOfMass[0] = (centerOfMass[0] / playerCount) - (2 * getRadius());
-	centerOfMass[1] = (centerOfMass[1] / playerCount) - (2 * getRadius());
-	centerOfMass[2] = centerOfMass[2] / playerCount;
-	setFlagTarget(centerOfMass);
+	char buffer_0[256];
+	sprintf (buffer_0, "first local player coordinate is %f, the second local player coordinate is %f, and the third local player coordinate is %f.",
+	    LocalPlayer::getMyTank()->getPosition()[0], LocalPlayer::getMyTank()->getPosition()[1], LocalPlayer::getMyTank()->getPosition()[2]);
+	controlPanel->addMessage(buffer_0, 0);
+
+	char buffer_2[256];
+	sprintf (buffer_2, "first self coordinate is %f, the second self coordinate is %f, and the third self coordinate is %f.",
+	    getPosition()[0], getPosition()[1], getPosition()[2]);
+	controlPanel->addMessage(buffer_2, 0);
+
+	flagPos[0] = (flagPos[0] / World::getWorld()->getCurMaxPlayers()) - (2 * getRadius());
+	flagPos[1] = (flagPos[1] / World::getWorld()->getCurMaxPlayers()) - (2 * getRadius());
+	//The below shouldn't really matter at this point in time, as the tank can't really just pick and choose what height it wants to be, but putting it there for consistency.
+	flagPos[2] = (flagPos[2] / World::getWorld()->getCurMaxPlayers()) - (2 * getRadius()); 
+	setFlagTarget(flagPos);
     }
     
     /*  This is the code example for printing to the console inside of the game.
