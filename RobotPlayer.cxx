@@ -233,6 +233,8 @@ void			RobotPlayer::doUpdateMotion(float dt)
     */
     bool teamGame = World::getWorld()->allowTeamFlags();
     float flagPos[3];
+    bool flocking = true;
+
 
     //Get robot tank to drop its own flag if it has it.
     if (teamGame && getFlag() != Flags::Null && (*(getFlag())).flagTeam == getTeam())
@@ -248,7 +250,7 @@ void			RobotPlayer::doUpdateMotion(float dt)
 
 
     //if statement checks if we are playing capture the flag and if it is true that the tank is not holding a flag. This is to seek a flag if not carrying one.
-    if (teamGame && getFlag() == Flags::Null) {
+    if (teamGame && getFlag() == Flags::Null && !flocking) {
         int numberFlags = World::getWorld()->getMaxFlags();
 	float flagDistance = 1000000; //arbitrarily large number.
 	for (int f = 0; f < numberFlags; f++) {
@@ -274,7 +276,7 @@ void			RobotPlayer::doUpdateMotion(float dt)
 	setFlagTarget(flagPos);
     }
     //else if statement checks if we are playing capture the flag and if is is true that the tank is holding a flag that belongs to an enemy team. This is to bring is back to its own base to score.
-    else if (teamGame && getFlag() != Flags::Null)
+    else if (teamGame && getFlag() != Flags::Null && !flocking)
     {
 	//TeamColor selfTeam = getTeam();
 	const float* baseCoord = World::getWorld()->getBase(getTeam(),0);
@@ -282,18 +284,33 @@ void			RobotPlayer::doUpdateMotion(float dt)
 	flagPos[1] = baseCoord[1];
 	flagPos[2] = baseCoord[2];	  
 	setFlagTarget(baseCoord);  
-
-
-
-	//char buffer[128];
-	//sprintf (buffer, "first base coordinate is %f, the second is %f, and the third is %f. My team is %d",
-	    //baseCoord[0], baseCoord[1], baseCoord[2], selfTeam);
-	//controlPanel->addMessage(buffer, 0);
     }
-
+    //I think I'm going to use this section for the assignment 2 flocking behavior.
     else
     {
-	//This does nothing yet.
+	Player *p = 0;
+	float *centerOfMass;
+	centerOfMass[0] = position[0];
+	centerOfMass[1] = position[1];
+	centerOfMass[2] = position[2];
+	int playerCount = 1;
+
+	for (int t=0; t <= World::getWorld()->getCurMaxPlayers(); t++) 
+	{
+	    p = World::getWorld()->getPlayer(t);
+	    if (p != NULL)
+	    {
+		const float *playerPos = (*p).getPosition();
+		centerOfMass[0] += playerPos[0];
+		centerOfMass[1] += playerPos[1];
+		centerOfMass[2] += playerPos[2];
+		playerCount++;
+	    }   
+	}
+	centerOfMass[0] = (centerOfMass[0] / playerCount) - (2 * getRadius());
+	centerOfMass[1] = centerOfMass[1] / playerCount - (2 * getRadius());
+	centerOfMass[2] = centerOfMass[2] / playerCount;
+	setFlagTarget(centerOfMass);
     }
     
     /*  This is the code example for printing to the console inside of the game.
