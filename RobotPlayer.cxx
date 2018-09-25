@@ -233,6 +233,50 @@ void			RobotPlayer::doUpdateMotion(float dt)
     */
     bool teamGame = World::getWorld()->allowTeamFlags();
     float flagPos[3];
+    bool flocking = true;
+    float centerOfMass[3];
+    float comDistance = 0;
+
+
+    /*  This code is to move the center of mass calculation from the third if/else branch to the beginning of function.
+     *     -current only calculates for LocalPlayer team. Need to implement for enemy tanks.
+     *  This puts the center of mass and the distance to it into the variables 'centerOfMass' and 'comDistance'.
+    */
+    if (teamGame && flocking && LocalPlayer::getMyTank()->getTeam() == getTeam()) 
+    {
+	Player *p = 0;
+	centerOfMass[0] = position[0] + LocalPlayer::getMyTank()->getPosition()[0];
+	centerOfMass[1] = position[1] + LocalPlayer::getMyTank()->getPosition()[1];
+	centerOfMass[2] = position[2] + LocalPlayer::getMyTank()->getPosition()[2];
+	int numTeammates = 2;
+
+
+	for (int t=0; t <= World::getWorld()->getCurMaxPlayers(); t++) 
+	{
+	    p = World::getWorld()->getPlayer(t);
+	    if (p != NULL && p->getId() != getId() && p->getTeam() == getTeam())
+	    {
+		centerOfMass[0] = centerOfMass[0] + p->getPosition()[0];
+		centerOfMass[1] = centerOfMass[1] + p->getPosition()[1];
+		centerOfMass[2] = centerOfMass[2] + p->getPosition()[2];
+		numTeammates++;
+	    }   
+	}
+	centerOfMass[0] = (centerOfMass[0] / numTeammates);
+	centerOfMass[1] = (centerOfMass[1] / numTeammates);
+	//The below shouldn't really matter at this point in time, as the tank can't really just pick and choose what height it wants to be, but putting it there for consistency.
+	centerOfMass[2] = (centerOfMass[2] / numTeammates);
+
+	comDistance = hypotf(centerOfMass[0], centerOfMass[1]);  
+
+	centerOfMass[0] = (centerOfMass[0] / numTeammates) - (2 * getRadius());
+	centerOfMass[1] = (centerOfMass[1] / numTeammates) - (2 * getRadius());
+	//The below shouldn't really matter at this point in time, as the tank can't really just pick and choose what height it wants to be, but putting it there for consistency.
+	centerOfMass[2] = (centerOfMass[2] / numTeammates) - (2 * getRadius()); 
+
+  
+    }
+
 
     //Get robot tank to drop its own flag if it has it.
     if (teamGame && getFlag() != Flags::Null && (*(getFlag())).flagTeam == getTeam())
@@ -247,8 +291,12 @@ void			RobotPlayer::doUpdateMotion(float dt)
 
 
 
-    //if statement checks if we are playing capture the flag and if it is true that the tank is not holding a flag. This is to seek a flag if not carrying one.
-    if (teamGame && getFlag() == Flags::Null) {
+    /*  First if/else branch checks whether or not we are playing a teamGame and whether or not the robot is carrying a flag. Right now it is also checking whether or not
+    *   it is on the same team as LocalPlayer (basically ally tanks will not seek enemy flag right now, only follow). The flocking variable is used to make the enemy tanks
+    *   do nothing.
+    *
+    */
+    if (teamGame && getFlag() == Flags::Null && LocalPlayer::getMyTank()->getTeam() != getTeam() /* && !flocking */ ) {
         int numberFlags = World::getWorld()->getMaxFlags();
 	float flagDistance = 1000000; //arbitrarily large number.
 	for (int f = 0; f < numberFlags; f++) {
@@ -267,14 +315,11 @@ void			RobotPlayer::doUpdateMotion(float dt)
 	    }
 
 	}
-	//char buffer[128];
-	//sprintf (buffer, "first flag coordinate is %f, the second flag coordinate is %f, and the third flag coordinate is %f.",
-	    //flagPos[0], flagPos[1], flagPos[2]);
-	//controlPanel->addMessage(buffer, 0);
 	setFlagTarget(flagPos);
     }
-    //else if statement checks if we are playing capture the flag and if is is true that the tank is holding a flag that belongs to an enemy team. This is to bring is back to its own base to score.
-    else if (teamGame && getFlag() != Flags::Null)
+    //else if statement checks if we are playing capture the flag and if is is true that the tank is holding a flag that belongs to an enemy team. This is to bring is 
+    //back to its own base to score.
+    else if (teamGame && getFlag() != Flags::Null && LocalPlayer::getMyTank()->getTeam() != getTeam() /* && !flocking */)
     {
 	//TeamColor selfTeam = getTeam();
 	const float* baseCoord = World::getWorld()->getBase(getTeam(),0);
@@ -282,18 +327,44 @@ void			RobotPlayer::doUpdateMotion(float dt)
 	flagPos[1] = baseCoord[1];
 	flagPos[2] = baseCoord[2];	  
 	setFlagTarget(baseCoord);  
-
-
-
-	//char buffer[128];
-	//sprintf (buffer, "first base coordinate is %f, the second is %f, and the third is %f. My team is %d",
-	    //baseCoord[0], baseCoord[1], baseCoord[2], selfTeam);
-	//controlPanel->addMessage(buffer, 0);
     }
+    //This makes ally tanks follow my (LocalPlayer running bzflag) tank.
+    else if (teamGame && flocking && LocalPlayer::getMyTank()->getTeam() == getTeam() && comDistance < (BZDBCache::worldSize / 8))
+    {
+	/*
+	Player *p = 0;
+	flagPos[0] = position[0] + LocalPlayer::getMyTank()->getPosition()[0];
+	flagPos[1] = position[1] + LocalPlayer::getMyTank()->getPosition()[1];
+	flagPos[2] = position[2] + LocalPlayer::getMyTank()->getPosition()[2];
+	int numTeammates = 2;
 
+	for (int t=0; t <= World::getWorld()->getCurMaxPlayers(); t++) 
+	{
+	    p = World::getWorld()->getPlayer(t);
+	    if (p != NULL && p->getId() != getId() && p->getTeam() == getTeam())
+	    {
+		flagPos[0] = flagPos[0] + p->getPosition()[0];
+		flagPos[1] = flagPos[1] + p->getPosition()[1];
+		flagPos[2] = flagPos[2] + p->getPosition()[2];
+		numTeammates++;
+	    }   
+	}
+	*/
+
+	centerOfMass[0] = centerOfMass[0] - (2 * getRadius());
+	centerOfMass[1] = centerOfMass[1] - (2 * getRadius());
+	//The below shouldn't really matter at this point in time, as the tank can't really just pick and choose what height it wants to be, but putting it there for consistency.
+	centerOfMass[2] = centerOfMass[2] - (2 * getRadius()); 
+	setFlagTarget(centerOfMass);
+
+
+	flagPos[0] = centerOfMass[0];
+	flagPos[1] = centerOfMass[1];
+	flagPos[2] = centerOfMass[2];
+    }
     else
     {
-	//This does nothing yet.
+	///currently nothing here.
     }
     
     /*  This is the code example for printing to the console inside of the game.
