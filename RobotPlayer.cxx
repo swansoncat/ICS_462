@@ -234,6 +234,53 @@ void			RobotPlayer::doUpdateMotion(float dt)
     bool teamGame = World::getWorld()->allowTeamFlags();
     float flagPos[3];
     bool flocking = true;
+    float centerOfMass[3];
+    float comDistance = 0;
+
+
+    /*  This code is to move the center of mass calculation from the third if/else branch to the beginning of function.
+     *     -current only calculates for LocalPlayer team. Need to implement for enemy tanks.
+     *  This puts the center of mass and the distance to it into the variables 'centerOfMass' and 'comDistance'.
+    */
+    if (teamGame && flocking && LocalPlayer::getMyTank()->getTeam() == getTeam()) 
+    {
+	Player *p = 0;
+	centerOfMass[0] = position[0] + LocalPlayer::getMyTank()->getPosition()[0];
+	centerOfMass[1] = position[1] + LocalPlayer::getMyTank()->getPosition()[1];
+	centerOfMass[2] = position[2] + LocalPlayer::getMyTank()->getPosition()[2];
+	int numTeammates = 2;
+
+	for (int t=0; t <= World::getWorld()->getCurMaxPlayers(); t++) 
+	{
+	    p = World::getWorld()->getPlayer(t);
+	    if (p != NULL && p->getId() != getId() && p->getTeam() == getTeam())
+	    {
+		centerOfMass[0] = centerOfMass[0] + p->getPosition()[0];
+		centerOfMass[1] = centerOfMass[1] + p->getPosition()[1];
+		centerOfMass[2] = centerOfMass[2] + p->getPosition()[2];
+		numTeammates++;
+	    }   
+	}
+	centerOfMass[0] = (centerOfMass[0] / numTeammates);
+	centerOfMass[1] = (centerOfMass[1] / numTeammates);
+	//The below shouldn't really matter at this point in time, as the tank can't really just pick and choose what height it wants to be, but putting it there for consistency.
+	centerOfMass[2] = (centerOfMass[2] / numTeammates);
+
+
+	float d[2];
+	d[0] = centerOfMass[0] - position[0];
+	d[1] = centerOfMass[1] - position[1];
+	comDistance = hypotf(d[0], d[1]); 
+
+	if (LocalPlayer::getMyTank()->getTeam() == getTeam())
+	{
+	    float k = BZDBCache::worldSize;
+	    char buffer[256];
+	    sprintf (buffer, "variable 1 is  %f and variable 2 is %f, the hypotenuse is %f, but comDistance is %f, and world size is %f",
+	      centerOfMass[0], centerOfMass[1], hypotf(centerOfMass[0], centerOfMass[1]), comDistance, k);
+	    controlPanel->addMessage(buffer, 0);
+	}
+    }
 
 
     //Get robot tank to drop its own flag if it has it.
@@ -249,8 +296,14 @@ void			RobotPlayer::doUpdateMotion(float dt)
 
 
 
-    //if statement checks if we are playing capture the flag and if it is true that the tank is not holding a flag. This is to seek a flag if not carrying one.
-    if (teamGame && getFlag() == Flags::Null && LocalPlayer::getMyTank()->getTeam() != getTeam() /* && !flocking */ ) {
+    /*  First if/else branch checks whether or not we are playing a teamGame and whether or not the robot is carrying a flag. Right now it is also checking whether or not
+    *   it is on the same team as LocalPlayer (basically ally tanks will not seek enemy flag right now, only follow). The flocking variable is used to make the enemy tanks
+    *   do nothing.
+    *
+    */
+    if ( (teamGame && getFlag() == Flags::Null && LocalPlayer::getMyTank()->getTeam() != getTeam() /* && !flocking */ ) 
+      || (teamGame && getFlag() == Flags::Null && LocalPlayer::getMyTank()->getTeam() == getTeam() && comDistance > (BZDBCache::worldSize / 30)) ) 
+    {
         int numberFlags = World::getWorld()->getMaxFlags();
 	float flagDistance = 1000000; //arbitrarily large number.
 	for (int f = 0; f < numberFlags; f++) {
@@ -258,7 +311,7 @@ void			RobotPlayer::doUpdateMotion(float dt)
 	    //Checks whether or not flag is it's own team or a non-team flag.
 	    if ((*(flag.type)).flagTeam != getTeam() && (*(flag.type)).flagTeam != NoTeam) 
 	    {
-		//tries to find the lar
+		//tries to find the closest flag
 		if (hypotf(flag.position[0], flag.position[1]) < flagDistance)
 		{
 		    flagDistance = hypotf(flag.position[0], flag.position[1]);
@@ -269,15 +322,12 @@ void			RobotPlayer::doUpdateMotion(float dt)
 	    }
 
 	}
-	//char buffer[128];
-	//sprintf (buffer, "first flag coordinate is %f, the second flag coordinate is %f, and the third flag coordinate is %f.",
-	    //flagPos[0], flagPos[1], flagPos[2]);
-	//controlPanel->addMessage(buffer, 0);
 	setFlagTarget(flagPos);
     }
     //else if statement checks if we are playing capture the flag and if is is true that the tank is holding a flag that belongs to an enemy team. This is to bring is 
     //back to its own base to score.
-    else if (teamGame && getFlag() != Flags::Null && LocalPlayer::getMyTank()->getTeam() != getTeam() /* && !flocking */)
+    else if ( (teamGame && getFlag() != Flags::Null && LocalPlayer::getMyTank()->getTeam() != getTeam() /* && !flocking */ ) 
+     || ( (teamGame && getFlag() != Flags::Null && LocalPlayer::getMyTank()->getTeam() == getTeam()) && (*(getFlag())).flagTeam != getTeam() ) )
     {
 	//TeamColor selfTeam = getTeam();
 	const float* baseCoord = World::getWorld()->getBase(getTeam(),0);
@@ -285,42 +335,22 @@ void			RobotPlayer::doUpdateMotion(float dt)
 	flagPos[1] = baseCoord[1];
 	flagPos[2] = baseCoord[2];	  
 	setFlagTarget(baseCoord);  
+
+
     }
-    //I think I'm going to use this section for the assignment 2 flocking behavior.
-    else if (teamGame && flocking && LocalPlayer::getMyTank()->getTeam() == getTeam())
+    //This makes ally tanks follow my (LocalPlayer running bzflag) tank.
+    else if (teamGame && flocking && LocalPlayer::getMyTank()->getTeam() == getTeam() && comDistance < (BZDBCache::worldSize / 30) )
     {
-	Player *p = 0;
-	flagPos[0] = position[0] + LocalPlayer::getMyTank()->getPosition()[0];
-	flagPos[1] = position[1] + LocalPlayer::getMyTank()->getPosition()[1];
-	flagPos[2] = position[2] + LocalPlayer::getMyTank()->getPosition()[2];
-	int numTeammates = 2;
-
-	for (int t=0; t <= World::getWorld()->getCurMaxPlayers(); t++) 
-	{
-	    p = World::getWorld()->getPlayer(t);
-	    if (p != NULL && p->getId() != getId() && p->getTeam() == getTeam())
-	    {
-		flagPos[0] = flagPos[0] + p->getPosition()[0];
-		flagPos[1] = flagPos[1] + p->getPosition()[1];
-		flagPos[2] = flagPos[2] + p->getPosition()[2];
-		numTeammates++;
-	    }   
-	}
-	char buffer_0[256];
-	sprintf (buffer_0, "first local player coordinate is %f, the second local player coordinate is %f, and the third local player coordinate is %f.",
-	    LocalPlayer::getMyTank()->getPosition()[0], LocalPlayer::getMyTank()->getPosition()[1], LocalPlayer::getMyTank()->getPosition()[2]);
-	controlPanel->addMessage(buffer_0, 0);
-
-	char buffer_2[256];
-	sprintf (buffer_2, "first self coordinate is %f, the second self coordinate is %f, and the third self coordinate is %f.",
-	    getPosition()[0], getPosition()[1], getPosition()[2]);
-	controlPanel->addMessage(buffer_2, 0);
-
-	flagPos[0] = (flagPos[0] / numTeammates) - (2 * getRadius());
-	flagPos[1] = (flagPos[1] / numTeammates) - (2 * getRadius());
+	centerOfMass[0] = centerOfMass[0] - (4 * getRadius());
+	centerOfMass[1] = centerOfMass[1] - (4 * getRadius());
 	//The below shouldn't really matter at this point in time, as the tank can't really just pick and choose what height it wants to be, but putting it there for consistency.
-	flagPos[2] = (flagPos[2] / World::getWorld()->getCurMaxPlayers()) - (2 * getRadius()); 
-	setFlagTarget(flagPos);
+	centerOfMass[2] = centerOfMass[2] - (4 * getRadius()); 
+	setFlagTarget(centerOfMass);
+
+
+	flagPos[0] = centerOfMass[0];
+	flagPos[1] = centerOfMass[1];
+	flagPos[2] = centerOfMass[2];
     }
     else
     {
