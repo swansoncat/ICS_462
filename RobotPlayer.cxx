@@ -343,15 +343,12 @@ void			RobotPlayer::doUpdateMotion(float dt)
 	      && comDistance > (BZDBCache::tankRadius * 10) )
     {
 	/* This was old code for implementing separation before getting to the part in the assignment that asked for separation.
-
 	centerOfMass[0] = centerOfMass[0] - (4 * getRadius());
 	centerOfMass[1] = centerOfMass[1] - (4 * getRadius());
 	//The below shouldn't really matter at this point in time, as the tank can't really just pick and choose what height it wants to be, but putting it there for consistency.
 	centerOfMass[2] = centerOfMass[2] - (4 * getRadius()); 
 	setFlagTarget(centerOfMass);
-
 	*/
-
 
 	flagPos[0] = centerOfMass[0];
 	flagPos[1] = centerOfMass[1];
@@ -361,24 +358,25 @@ void			RobotPlayer::doUpdateMotion(float dt)
     else
     {
 	Player *p = 0;
-	float c[3];
-	float e[3];
+	float currVector[4];
+	float endVector[3];
 	float threshold = (BZDBCache::tankRadius * 10);
 	float strength = 0.0;
-	e[0] = position[0];
-	e[1] = position[1];
-	e[2] = position[2];
-	c[0] = LocalPlayer::getMyTank()->getPosition()[0];
-	c[1] = LocalPlayer::getMyTank()->getPosition()[1];
-	c[2] = LocalPlayer::getMyTank()->getPosition()[2];
-	c[0] = c[0] - position[0];
-	c[1] = c[1] - position[1];
-	c[2] = c[2] - position[2];
-	if (hypotf(c[0], c[1]) < threshold)
+	endVector[0] = position[0];
+	endVector[1] = position[1];
+	endVector[2] = position[2];
+	currVector[0] = LocalPlayer::getMyTank()->getPosition()[0];
+	currVector[1] = LocalPlayer::getMyTank()->getPosition()[1];
+	currVector[2] = LocalPlayer::getMyTank()->getPosition()[2];
+	currVector[0] = currVector[0] - position[0];
+	currVector[1] = currVector[1] - position[1];
+	currVector[2] = currVector[2] - position[2];
+	currVector[3] = hypotf(currVector[0], currVector[1]);
+	if (currVector[3] < threshold)
 	{
-	    strength = 1.0f * ((threshold - c[2]) / threshold);
-	    e[0] = e[0] - (strength * c[0]);
-	    e[1] = e[1] - (strength * c[1]);	    
+	    strength = 1.0f * ((threshold - currVector[3]) / threshold);
+	    endVector[0] = endVector[0] - (strength * currVector[0]);
+	    endVector[1] = endVector[1] - (strength * currVector[1]);	    
 	}
 
 	for (int t=0; t <= World::getWorld()->getCurMaxPlayers(); t++) 
@@ -388,35 +386,28 @@ void			RobotPlayer::doUpdateMotion(float dt)
 
 	    if (p != NULL)
 	    {
-		c[0] = p->getPosition()[0];
-		c[0] = c[0] - position[0];
-		c[1] = p->getPosition()[1]; 
-		c[1] = c[1] - position[1];
-		c[2] = hypotf(c[0], c[1]);
+		currVector[0] = p->getPosition()[0];
+		currVector[0] = currVector[0] - position[0];
+		currVector[1] = p->getPosition()[1]; 
+		currVector[1] = currVector[1] - position[1];
+		currVector[2] = p->getPosition()[2];
+		currVector[2] = currVector[2] - position[2];
+		currVector[3] = hypotf(currVector[0], currVector[1]);      
 	    }
-	    if (p != NULL && p->getId() != getId() && p->getTeam() == getTeam() && c[2] < threshold)
+	    if (p != NULL && p->getId() != getId() && p->getTeam() == getTeam() && currVector[3] < threshold)
 	    {
-		strength = 1.0f * ((threshold - c[2]) / threshold);
-		e[0] = e[0] - (strength * c[0]);
-		e[1] = e[1] - (strength * c[1]);
+		strength = 1.0f * ((threshold - currVector[3]) / threshold);
+		endVector[0] = endVector[0] - (strength * currVector[0]);
+		endVector[1] = endVector[1] - (strength * currVector[1]);
 	    }   
 	}
-	setFlagTarget(e);
-	flagPos[0] = e[0];
-	flagPos[1] = e[1];
-	flagPos[2] = e[2];
+	setFlagTarget(endVector);
+	flagPos[0] = endVector[0];
+	flagPos[1] = endVector[1];
+	flagPos[2] = endVector[2];
     }
-    
-    /*  This is the code example for printing to the console inside of the game.
-    
-    char buffer[128];
-    sprintf (buffer, "getCurMaxPlayers() is  %d",
-	World::getWorld()->getCurMaxPlayers());
-    controlPanel->addMessage(buffer, 0);
-  
-    */
 
-    //End of Kalen modifications
+    //End of Kalen modifications 1
 
 
 
@@ -537,16 +528,9 @@ void			RobotPlayer::doUpdateMotion(float dt)
     *  So this is a copy of the above code. We are going to try and modify it to set its target to where the flag is.
     *
     */    
-
-
-    //(!evading && dt > 0.0 && pathIndex < (int)path.size())
     if (!evading && dt > 0.0 && pathIndex < (int)path.size()) {      
       float distance;
       float v[2];
-      //const float* endPoint = path[pathIndex].get(); ----removed from original code
-      // find how long it will take to get to next path segment
-      //v[0] = endPoint[0] - position[0];
-      //v[1] = endPoint[1] - position[1];
       v[0] = flagPos[0] - position[0];
       v[1] = flagPos[1] - position[1];
       distance = hypotf(v[0], v[1]);
@@ -654,46 +638,6 @@ void			RobotPlayer::setFlagTarget(const float* _target)
     path.clear();
   pathIndex = 0;
   
-}
-
-
-
-void RobotPlayer::getProjectedFlagPosition(const float *targ, float *projpos) const
-{
-  double myx = getPosition()[0];
-  double myy = getPosition()[1];
-  double hisx = targ[0];
-  double hisy = targ[1];
-  double deltax = hisx - myx;
-  double deltay = hisy - myy;
-  double distance = hypotf(deltax,deltay) - BZDB.eval(StateDatabase::BZDB_MUZZLEFRONT) - BZDBCache::tankRadius;
-  if (distance <= 0) distance = 0;
-  double shotspeed = BZDB.eval(StateDatabase::BZDB_SHOTSPEED)*
-    (getFlag() == Flags::Laser ? BZDB.eval(StateDatabase::BZDB_LASERADVEL) :
-     getFlag() == Flags::RapidFire ? BZDB.eval(StateDatabase::BZDB_RFIREADVEL) :
-     getFlag() == Flags::MachineGun ? BZDB.eval(StateDatabase::BZDB_MGUNADVEL) : 1) +
-      hypotf(getVelocity()[0], getVelocity()[1]);
-
-  double errdistance = 1.0;
-  float tx, ty, tz;
-  for (int tries=0 ; errdistance > 0.05 && tries < 4 ; tries++)
-  {
-    float t = (float)distance / (float)shotspeed;
-    //Need to fix this, just leaving here as I'm not sure whether I will outright delete this function or update so that it works.
-    //projectPosition(targ, t + 0.05f, tx, ty, tz); // add 50ms for lag
-    double distance2 = hypotf(tx - myx, ty - myy);
-    errdistance = fabs(distance2-distance) / (distance + ZERO_TOLERANCE);
-    distance = distance2;
-  }
-  projpos[0] = tx; projpos[1] = ty; projpos[2] = tz;
-
-
-  // projected pos in building -> use current pos
-  if (World::getWorld()->inBuilding(projpos, 0.0f, BZDBCache::tankHeight)) {
-    projpos[0] = targ[0];
-    projpos[1] = targ[1];
-    projpos[2] = targ[2];
-  }  
 }
 
 
