@@ -17,6 +17,9 @@ ARegion::ARegion(float x, float y, int i, bool b)
 	
 }
 
+/* This function takes a float* as an argument, which should be a pair of coordinates of somewhere on the map. The function returns the tile corresponding to those coordinates.
+*
+*/
 int ARegion::getCurrentTile(float* f)
 {	
 	int currentTile = -1;
@@ -35,24 +38,29 @@ int ARegion::getCurrentTile(float* f)
 	return currentTile;
 }
 
+void ARegion::addNeighbor(ARegion a)
+{
+
+}
+
 
 ARegionMap::ARegionMap()
 {
 	//do nothing
 }
-
+/*	This creates a tiled map of the game map, which will be used to do the A-star search.
+*
+*
+*/
 ARegionMap::ARegionMap(bool b)
 {
-	//double squareRoot = sqrt(BZDBCache::worldSize);
 	int half = BZDBCache::worldSize / 2;
 	leftMargin = 0 - half;
 	rightMargin = 0 + half;
 	topMargin = 0 + half;
 	bottomMargin = 0 - half;
 	horizontalTiles = ceil(BZDBCache::worldSize / BZDBCache::tankRadius);
-	//horizontalTiles = BZDBCache::worldSize;
 	verticalTiles = ceil(BZDBCache::worldSize / BZDBCache::tankRadius);
-	//verticalTiles = squareRoot;
 	totalTiles = horizontalTiles * verticalTiles;
 
 	
@@ -88,7 +96,10 @@ ARegionMap::ARegionMap(bool b)
 
 }
 
-//should be return float* but changing to int for testing
+/*should be return float* but changing to int for testing
+*
+* Currently this function just sets all the h-values for each tile in the A-star search map. 
+*/
 int ARegionMap::setTarget(float* target)
 {
 	
@@ -119,6 +130,88 @@ int ARegionMap::setTarget(float* target)
 		map.at(k).h_value = xOffset + yOffset;
 	}
 	return totalTiles;
+}
+
+std::vector<int> ARegionMap::getNeighborTiles(int i)
+{
+	std::vector<int> numbers;
+	//first tile, upper left corner of map
+	if (i % horizontalTiles == 1 && i == 1)
+	{
+		numbers.push_back(2);
+		numbers.push_back(horizontalTiles + 1);
+		numbers.push_back(horizontalTiles + 2);		
+	}
+	//upper right corner of map
+	else if(i % horizontalTiles == 0 && i == horizontalTiles)
+	{
+		numbers.push_back(horizontalTiles - 1);
+		numbers.push_back(horizontalTiles - 1 + horizontalTiles);
+		numbers.push_back(horizontalTiles * 2);
+	}
+	//bottom left corner of map
+	else if (i % horizontalTiles == 1 && i == totalTiles + 1 - horizontalTiles)
+	{
+		numbers.push_back(totalTiles + 2 - horizontalTiles);
+		numbers.push_back(totalTiles - 2 - horizontalTiles);	
+		numbers.push_back(totalTiles - 3 - horizontalTiles);	
+	}
+	//bottom right corner of map
+	else if (i % horizontalTiles == 0 && i == totalTiles)
+	{
+		numbers.push_back(totalTiles - 1);
+		numbers.push_back(totalTiles - horizontalTiles);	
+		numbers.push_back(totalTiles - 1 - horizontalTiles);	
+	}
+	//left edge of map that isn't a corner
+	else if (i % horizontalTiles == 1 && i > horizontalTiles && i < totalTiles - horizontalTiles)
+	{
+		numbers.push_back(i + 1);
+		numbers.push_back(i - horizontalTiles);
+		numbers.push_back(i + horizontalTiles);
+		numbers.push_back(i - horizontalTiles + 1);
+		numbers.push_back(i + horizontalTiles - 1);    
+	}
+	//right edge of map that isn't a corner
+	else if (i % horizontalTiles == 0 && i > horizontalTiles && i < totalTiles - horizontalTiles + 1)
+	{
+		numbers.push_back(i - 1);
+		numbers.push_back(i - horizontalTiles);
+		numbers.push_back(i + horizontalTiles);
+		numbers.push_back(i - horizontalTiles - 1);
+		numbers.push_back(i + horizontalTiles - 1);    
+	}
+	//top edge of map that isn't a corner
+	else if(i != 1 && i != horizontalTiles && 1 < i < horizontalTiles)
+	{
+		numbers.push_back(i - 1);
+		numbers.push_back(i + 1);
+		numbers.push_back(i + horizontalTiles);
+		numbers.push_back(i + horizontalTiles + 1);
+		numbers.push_back(i + horizontalTiles - 1);
+	}
+	//bottom edge of map that isn't a corner
+	else if(i != totalTiles && i != totalTiles + 1 - horizontalTiles && totalTiles > i > totalTiles + 1 - horizontalTiles)
+	{
+		numbers.push_back(i - 1);
+		numbers.push_back(i + 1);
+		numbers.push_back(i - horizontalTiles);
+		numbers.push_back(i - horizontalTiles + 1);
+		numbers.push_back(i - horizontalTiles - 1);
+	}
+	//center tile, or one surrounded by 8 neighbors
+	else
+	{
+		numbers.push_back(i - 1);
+		numbers.push_back(i + 1);
+		numbers.push_back(i - horizontalTiles);
+		numbers.push_back(i - horizontalTiles + 1);
+		numbers.push_back(i - horizontalTiles - 1);
+		numbers.push_back(i + horizontalTiles);
+		numbers.push_back(i + horizontalTiles + 1);
+		numbers.push_back(i + horizontalTiles - 1);
+	}
+	return numbers;
 }
 
 
