@@ -7,6 +7,9 @@
 
 class ARegion {
 	public:
+		ARegion();
+		ARegion(float x, float y, int i, bool b);
+
 		float x_coord;
 		float y_coord;
 		float blockWidth;
@@ -23,6 +26,9 @@ class ARegion {
 
 class ARegionMap {
 	public:
+		ARegionMap();
+		ARegionMap(bool b);
+
 		int leftMargin;
 		int rightMargin;
 		int topMargin;
@@ -32,7 +38,8 @@ class ARegionMap {
 		int totalTiles;
 
 		std::vector<ARegion> map;
+		std::vector<ARegion>::iterator iter;
 
-		float* seekPath(float* target);
+		int setTarget(float* target);
 	
 };

@@ -33,6 +33,8 @@
 //Added to use control panel object KNB
 #include "playing.h"
 
+#include "ARegion.h"
+
 
 class RobotPlayer : public LocalPlayer {
   public:
@@ -49,6 +51,9 @@ class RobotPlayer : public LocalPlayer {
 
     void		restart(const float* pos, float azimuth);
     void		explodeTank();
+
+    //new variable knb
+    ARegionMap		worldTiles;
 
   private:
     void		doUpdate(float dt);

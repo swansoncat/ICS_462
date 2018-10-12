@@ -28,7 +28,7 @@
 //Added to use control panel object KNB
 #include "playing.h"
 
-#include "ARegion.h"
+
 
 std::vector<BzfRegion*>* RobotPlayer::obstacleList = NULL;
 
@@ -226,6 +226,7 @@ void			RobotPlayer::doUpdateMotion(float dt)
 
 
 
+
     //start of Kalen modifications 1
     /* The modifications to the robot tank AI is mostly through one big if/else-if/else statement. The first branch makes robot tanks seek the closest enemy flag (if the robot tank is on the
     *  LocalPlayer's team, then it must be outside the distance threshold). The second branch makes robot tanks that have picked up an enemy flag return to their base. The third branch is the
@@ -321,11 +322,12 @@ void			RobotPlayer::doUpdateMotion(float dt)
 	    }
 
 	}
-      char buffer[128];
-      sprintf (buffer, "position coordinate x is  %f, position coordinate y is  %f",
-	  flagPos[0], flagPos[1]);
-      controlPanel->addMessage(buffer);
-      setFlagTarget(flagPos);
+	setFlagTarget(flagPos);
+	char buffer[128];
+	sprintf (buffer, "total tiles is  %d, horizontal tiles is is  %d, vertical tiles is %d",
+	    	worldTiles.totalTiles, worldTiles.horizontalTiles, worldTiles.verticalTiles);
+	controlPanel->addMessage(buffer);
+
     }
     //Second branch: if carrying enemy flag, return to base to score.
     else if ( (teamGame && getFlag() != Flags::Null && LocalPlayer::getMyTank()->getTeam() != getTeam() /* && !flocking */ ) 
@@ -598,7 +600,7 @@ void			RobotPlayer::doUpdateMotion(float dt)
 void			RobotPlayer::setFlagTarget(const float* _target)
 {
   static int mailbox = 0;
-  
+  worldTiles = new ARegionMap(true);
   path.clear();
   //target = _target;
   //if (!target) return;
@@ -655,7 +657,7 @@ void			RobotPlayer::restart(const float* pos, float _azimuth)
   path.clear();
   target = NULL;
   pathIndex = 0;
-
+  worldTiles = new ARegionMap(true);
 }
 
 float			RobotPlayer::getTargetPriority(const
