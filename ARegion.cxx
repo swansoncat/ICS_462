@@ -2,6 +2,7 @@
 #include <vector>
 #include "ARegion.h"
 #include "World.h"
+#include "playing.h"
 
 ARegion::ARegion()
 {
@@ -40,7 +41,16 @@ int ARegion::getCurrentTile(float* f)
 
 void ARegion::addNeighbor(ARegion a)
 {
+	neighbors.push_back(a);
+}
 
+
+float* ARegion::getTileCoordinates()
+{
+	float f[2];
+	f[0] = x_coord;
+	f[1] = y_coord;
+	return f;
 }
 
 
@@ -48,6 +58,8 @@ ARegionMap::ARegionMap()
 {
 	//do nothing
 }
+
+
 /*	This creates a tiled map of the game map, which will be used to do the A-star search.
 *
 *
@@ -100,7 +112,7 @@ ARegionMap::ARegionMap(bool b)
 *
 * Currently this function just sets all the h-values for each tile in the A-star search map. 
 */
-int ARegionMap::setTarget(float* target)
+int ARegionMap::setTarget(float* pos, float* target)
 {
 	
 	ARegion tiles[totalTiles];
@@ -109,8 +121,15 @@ int ARegionMap::setTarget(float* target)
 		//std::vector<ARegion>::iterator tileIter = map.beginning():
 		tiles[n] = map.at(n);
 	}
+
+	std::vector<ARegion> open;
+	std::vector<ARegion> closed;
+	ARegion home = tiles[ARegion::getCurrentTile(pos)];
+	home.g_value = 0;
+	closed.push_back(home);
 	
 
+	//This section of code sets the h-value of each tile.
 	float xTarg = target[0];
 	float yTarg = target[1];
 
@@ -129,6 +148,30 @@ int ARegionMap::setTarget(float* target)
 		tiles[k].h_value = xOffset + yOffset;
 		map.at(k).h_value = xOffset + yOffset;
 	}
+
+	
+	//attempting to set g_values
+	ARegion current = home;
+	//std::vector<int>::iterator iter = getNeighborTiles(ARegion::getCurrentTile(pos))).begin();
+	int z = ARegion::getCurrentTile(pos);
+	std::vector<int> y = getNeighborTiles(z);	
+
+	char buffer[128];
+	sprintf (buffer, "iter's size currently is %d, pos x coordinate is %f, pos y coordinate is %f, i is %d, horizontal tiles is %d",
+			y.size(), pos[0], pos[1], ARegion::getCurrentTile(pos), horizontalTiles);
+	controlPanel->addMessage(buffer);
+	
+
+	/*
+	for (iter = (getNeighborTiles(ARegion::getCurrentTile(pos))).begin() ; iter != (getNeighborTiles(ARegion::getCurrentTile(pos))).end() ; iter++)
+	{
+
+		//tiles[*iter].g_value = current.g_value + hypotf(current.x_coord - tiles[*iter].x_coord, current.y_coord - tiles[*iter].y_coord);
+		current.addNeighbor(tiles[*iter]);
+	}
+	*/
+
+
 	return totalTiles;
 }
 
@@ -182,7 +225,7 @@ std::vector<int> ARegionMap::getNeighborTiles(int i)
 		numbers.push_back(i + horizontalTiles - 1);    
 	}
 	//top edge of map that isn't a corner
-	else if(i != 1 && i != horizontalTiles && 1 < i < horizontalTiles)
+	else if(i != 1 && i != horizontalTiles && 1 < i  && i < horizontalTiles)
 	{
 		numbers.push_back(i - 1);
 		numbers.push_back(i + 1);
@@ -191,7 +234,7 @@ std::vector<int> ARegionMap::getNeighborTiles(int i)
 		numbers.push_back(i + horizontalTiles - 1);
 	}
 	//bottom edge of map that isn't a corner
-	else if(i != totalTiles && i != totalTiles + 1 - horizontalTiles && totalTiles > i > totalTiles + 1 - horizontalTiles)
+	else if(i != totalTiles && i != totalTiles + 1 - horizontalTiles && totalTiles > i && i > totalTiles + 1 - horizontalTiles)
 	{
 		numbers.push_back(i - 1);
 		numbers.push_back(i + 1);
@@ -214,7 +257,13 @@ std::vector<int> ARegionMap::getNeighborTiles(int i)
 	return numbers;
 }
 
-
+float* ARegionMap::getPosCoordinates(int i)
+{
+	ARegion a = map.at(i);
+	float f[2];
+	f[0] = a.x_coord;
+	f[1] = a.y_coord;
+}
 
 
 

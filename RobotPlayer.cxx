@@ -324,7 +324,7 @@ void			RobotPlayer::doUpdateMotion(float dt)
 	}
 
 	int test = ARegion::getCurrentTile(position);
-	worldTiles.setTarget(flagPos);
+	worldTiles.setTarget(position, flagPos);
 	setFlagTarget(flagPos);
 	char buffer[128];
 	sprintf (buffer, "the current tile position is %d, the total number of tiles is %d",
