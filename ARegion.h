@@ -1,5 +1,7 @@
 
+
 #include <vector>
+#include <string>
 
 #include "BZDBCache.h"
 
@@ -9,6 +11,7 @@ class ARegion {
 	public:
 		ARegion();
 		ARegion(float x, float y, int i, bool b);
+		static int getCurrentTile(float* f);
 
 		float x_coord;
 		float y_coord;
@@ -20,7 +23,10 @@ class ARegion {
 		ARegion* parent;
 		int id;
 		bool passable;
-
+		
+		float testFloat;
+		int testInt;
+		std::string testString;
 
 };
 

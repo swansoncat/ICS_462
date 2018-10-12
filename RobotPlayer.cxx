@@ -322,10 +322,13 @@ void			RobotPlayer::doUpdateMotion(float dt)
 	    }
 
 	}
+
+	int test = ARegion::getCurrentTile(position);
+	worldTiles.setTarget(flagPos);
 	setFlagTarget(flagPos);
 	char buffer[128];
-	sprintf (buffer, "total tiles is  %d, horizontal tiles is is  %d, vertical tiles is %d",
-	    	worldTiles.totalTiles, worldTiles.horizontalTiles, worldTiles.verticalTiles);
+	sprintf (buffer, "the current tile position is %d, the total number of tiles is %d",
+	    	test, worldTiles.totalTiles);
 	controlPanel->addMessage(buffer);
 
     }

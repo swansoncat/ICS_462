@@ -17,6 +17,24 @@ ARegion::ARegion(float x, float y, int i, bool b)
 	
 }
 
+int ARegion::getCurrentTile(float* f)
+{	
+	int currentTile = -1;
+	int currentX = -1;
+	int currentY = -1;
+	int mapSideLength = BZDBCache::worldSize;
+
+	float x = f[0];
+	float y = f[1];
+
+	currentX = ceil((f[0] - (0 - (mapSideLength / 2))) / BZDBCache::tankRadius);
+	currentY = ceil(((0 + (mapSideLength / 2)) - f[1]) / BZDBCache::tankRadius);
+	
+	currentTile = (ceil(mapSideLength / BZDBCache::tankRadius) * currentY) + currentX;
+
+	return currentTile;
+}
+
 
 ARegionMap::ARegionMap()
 {
@@ -31,12 +49,12 @@ ARegionMap::ARegionMap(bool b)
 	rightMargin = 0 + half;
 	topMargin = 0 + half;
 	bottomMargin = 0 - half;
-	horizontalTiles = ceil(half / BZDBCache::tankRadius);
+	horizontalTiles = ceil(BZDBCache::worldSize / BZDBCache::tankRadius);
 	//horizontalTiles = BZDBCache::worldSize;
-	verticalTiles = ceil(half / BZDBCache::tankRadius);
+	verticalTiles = ceil(BZDBCache::worldSize / BZDBCache::tankRadius);
 	//verticalTiles = squareRoot;
 	totalTiles = horizontalTiles * verticalTiles;
-	iter = map.begin();
+
 	
 	for (int i = 0 ; i < verticalTiles ; i++)
 	{
@@ -54,22 +72,18 @@ ARegionMap::ARegionMap(bool b)
 			if (World::getWorld()->inBuilding(coord, tankHalf, 0) != NULL)
 			{
 				ARegion a = ARegion(xCenter, yCenter, count, false);
-				//ARegion aa = *(a + 0);
 				map.push_back(a);
-				iter++;	
 			}
 			else
 			{
 				ARegion a = ARegion(xCenter, yCenter, count, true);
-				//ARegion aa = *(a + 0);
 				map.push_back(a);
-				iter++;	
 			}
 			
 		}
 		count++;
 	}		
-	
+	iter = map.begin();
 
 
 }
@@ -77,7 +91,7 @@ ARegionMap::ARegionMap(bool b)
 //should be return float* but changing to int for testing
 int ARegionMap::setTarget(float* target)
 {
-	/*
+	
 	ARegion tiles[totalTiles];
 	for (int n = 0 ; n < map.size() ; n++)
 	{
@@ -101,11 +115,13 @@ int ARegionMap::setTarget(float* target)
 		int posTileY = (topMargin - (map.at(k).x_coord)) / BZDBCache::tankRadius;
 		int xOffset = targetTileX - posTileX;
 		int yOffset = targetTileY - posTileY;
-		//tiles[k].h_value = xOffset + yOffset;
+		tiles[k].h_value = xOffset + yOffset;
 		map.at(k).h_value = xOffset + yOffset;
-	}*/
+	}
 	return totalTiles;
 }
+
+
 
 
 
